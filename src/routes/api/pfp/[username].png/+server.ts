@@ -30,7 +30,8 @@ export async function GET({ params, url }) {
 		return new Response(dataURL, {
 			status: 200,
 			headers: {
-				"Content-Type": "image/png"
+				"Content-Type": "image/png",
+				"Cache-Control": "public, max-age=300"
 			}
 		});
 
