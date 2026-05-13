@@ -3,6 +3,19 @@ import { loadImage } from "skia-canvas";
 import { resolve } from "path";
 const prefix = resolve("static");
 
+async function fetchSkinImage(username: string) {
+	let lastError: unknown;
+	for (let attempt = 0; attempt < 3; attempt++) {
+		try {
+			const skinURL = await getSkin(username);
+			return await loadImage(skinURL);
+		} catch (e) {
+			lastError = e;
+		}
+	}
+	throw lastError;
+}
+
 async function generatePfp(username: string, ctx: any) {
 	try {
 		if (!username) {
@@ -10,8 +23,7 @@ async function generatePfp(username: string, ctx: any) {
 			return;
 		}
 
-		const skinURL = await getSkin(username);
-		const skinImage = await loadImage(skinURL);
+		const skinImage = await fetchSkinImage(username);
 		const shading = await loadImage(`${prefix}/20x20pshading.png`);
 		const backdrop = await loadImage(`${prefix}/backdropshading.png`);
 
