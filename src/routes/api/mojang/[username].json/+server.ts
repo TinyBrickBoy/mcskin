@@ -1,41 +1,24 @@
+import { getSkin, valid } from "$lib/rendering/mojang";
 import { json } from "@sveltejs/kit";
 
 export async function GET({ params }) {
-	if (!params?.username) {
-		return json({ error: "Missing username" }, { status: 400 });
+	if (!params?.username || !valid(params.username)) {
+		return json({ error: "Invalid or missing username" }, { status: 400 });
 	}
 
 	try {
 		const skinURL = await getSkin(params.username);
 		const response = await fetch(skinURL);
+		if (!response.ok) throw new Error(`Skin fetch returned ${response.status}`);
 		const blob = await response.arrayBuffer();
-		const buffer = `data:${response.headers.get("content-type")};base64,${Buffer.from(blob).toString("base64")}`;
+		if (!blob || blob.byteLength === 0) throw new Error("Empty skin payload");
+		const contentType = response.headers.get("content-type") ?? "image/png";
+		const buffer = `data:${contentType};base64,${Buffer.from(blob).toString("base64")}`;
 
-		return json({ skin: buffer });
+		return json({ skin: buffer }, {
+			headers: { "Cache-Control": "public, max-age=300" }
+		});
 	} catch (e) {
-		return json({ message: "something went wrong", error: e }, { status: 400 });
+		return json({ message: "something went wrong", error: String(e) }, { status: 400 });
 	}
-
-}
-
-async function getSkin(username: string): Promise<string | never> {
-	if (!valid(username)) return Promise.reject(`${username} is an invalid username`);
-	const UUID = await getUUID(username);
-	const response = await fetch(`http://172.18.0.1:4017/sessionserver.mojang.com/session/minecraft/profile/${UUID}`);
-	if (!response.ok) return Promise.reject(`Response returned statuscode ${response.status}`);
-	const json = await response.json();
-	const r = JSON.parse(atob(json.properties[0].value));
-	return r.textures.SKIN.url;
-}
-
-async function getUUID(username: string): Promise<string | never> {
-	if (!valid(username)) return Promise.reject(`${username} is an invalid username`);
-	const response = await fetch(`http://172.18.0.1:4017/api.mojang.com/users/profiles/minecraft/${username}`)
-	if (!response.ok) return Promise.reject(`${username} does not exist`);
-	const json = await response.json();
-	return json.id;
-}
-
-function valid(username: string) {
-	return username.match(/^[a-z0-9_]{1,16}$/i);
 }
