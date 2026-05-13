@@ -67,8 +67,11 @@ async function getSkin(username: string): Promise<string | never> {
 		const response = await fetch(`${MOJANG_PROXY}/sessionserver.mojang.com/session/minecraft/profile/${uuid}`);
 		if (!response.ok) throw new Error(`Response returned statuscode ${response.status}`);
 		const json = await response.json();
-		const decoded = JSON.parse(atob(json.properties[0].value));
-		const url = decoded.textures.SKIN.url as string;
+		const prop = json?.properties?.[0]?.value;
+		if (!prop) throw new Error(`No texture property for ${uuid}`);
+		const decoded = JSON.parse(atob(prop));
+		const url = decoded?.textures?.SKIN?.url as string | undefined;
+		if (!url) throw new Error(`No skin set for ${uuid}`);
 		cacheSet(skinCache, uuid, url, SKIN_TTL_MS);
 		return url;
 	})();

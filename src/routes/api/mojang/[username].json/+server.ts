@@ -9,8 +9,11 @@ export async function GET({ params }) {
 	try {
 		const skinURL = await getSkin(params.username);
 		const response = await fetch(skinURL);
+		if (!response.ok) throw new Error(`Skin fetch returned ${response.status}`);
 		const blob = await response.arrayBuffer();
-		const buffer = `data:${response.headers.get("content-type")};base64,${Buffer.from(blob).toString("base64")}`;
+		if (!blob || blob.byteLength === 0) throw new Error("Empty skin payload");
+		const contentType = response.headers.get("content-type") ?? "image/png";
+		const buffer = `data:${contentType};base64,${Buffer.from(blob).toString("base64")}`;
 
 		return json({ skin: buffer }, {
 			headers: { "Cache-Control": "public, max-age=300" }
