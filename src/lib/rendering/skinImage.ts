@@ -32,6 +32,8 @@ async function fetchSkinImage(username: string) {
 			return await getSkinImage(skinURL);
 		} catch (e) {
 			lastError = e;
+			const err = e as any;
+			console.warn(`[skinImage] attempt ${attempt + 1}/3 failed for ${username}: ${err?.message ?? err}`);
 		}
 	}
 	throw lastError;
