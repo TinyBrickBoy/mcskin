@@ -39,8 +39,18 @@ async function getUUID(username: string): Promise<string | never> {
 	if (existing) return existing;
 
 	const p = (async () => {
-		const response = await fetch(`${MOJANG_PROXY}/api.mojang.com/users/profiles/minecraft/${username}`);
-		if (!response.ok) throw new Error(`${username} does not exist`);
+		const url = `${MOJANG_PROXY}/api.mojang.com/users/profiles/minecraft/${username}`;
+		const t = Date.now();
+		let response: Response;
+		try {
+			response = await fetch(url);
+		} catch (e) {
+			const err = e as any;
+			console.error(`[mojang] uuid fetch threw for ${username} after ${Date.now() - t}ms: ${err?.message ?? err} cause=${err?.cause?.message ?? err?.cause ?? "none"}`);
+			throw e;
+		}
+		console.log(`[mojang] uuid ${username} status=${response.status} in ${Date.now() - t}ms`);
+		if (!response.ok) throw new Error(`uuid lookup ${username} -> ${response.status}`);
 		const json = await response.json();
 		cacheSet(uuidCache, key, json.id as string, UUID_TTL_MS);
 		return json.id as string;
@@ -64,8 +74,18 @@ async function getSkin(username: string): Promise<string | never> {
 	if (existing) return existing;
 
 	const p = (async () => {
-		const response = await fetch(`${MOJANG_PROXY}/sessionserver.mojang.com/session/minecraft/profile/${uuid}`);
-		if (!response.ok) throw new Error(`Response returned statuscode ${response.status}`);
+		const endpoint = `${MOJANG_PROXY}/sessionserver.mojang.com/session/minecraft/profile/${uuid}`;
+		const t = Date.now();
+		let response: Response;
+		try {
+			response = await fetch(endpoint);
+		} catch (e) {
+			const err = e as any;
+			console.error(`[mojang] profile fetch threw for ${uuid} after ${Date.now() - t}ms: ${err?.message ?? err} cause=${err?.cause?.message ?? err?.cause ?? "none"}`);
+			throw e;
+		}
+		console.log(`[mojang] profile ${uuid} status=${response.status} in ${Date.now() - t}ms`);
+		if (!response.ok) throw new Error(`profile lookup ${uuid} -> ${response.status}`);
 		const json = await response.json();
 		const prop = json?.properties?.[0]?.value;
 		if (!prop) throw new Error(`No texture property for ${uuid}`);
